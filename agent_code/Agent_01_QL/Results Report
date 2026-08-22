@@ -1,0 +1,16 @@
+Agent_01_QL dient als erste Baseline und verwendet tabellarisches Q-Learning. 
+Der Zustand wird durch die aktuelle Position des Agenten sowie die Position des nächstgelegenen Coins beschrieben. 
+Für jedes Zustands-Aktions-Paar wird ein Q-Wert gespeichert, der während des Trainings mit der klassischen 
+Q-Learning-Update-Regel aktualisiert wird. 
+Die Aktionsauswahl erfolgt während des Trainings ε-greedy, sodass der Agent sowohl neue Aktionen ausprobiert 
+als auch bereits gelernte Aktionen nutzt.
+Der Agent wurde zunächst ausschließlich im coin-heaven-Szenario trainiert. 
+Er kann dadurch lernen, sichtbare Coins gezielt anzusteuern und einzusammeln. 
+Bomben, Crates, Explosionen und gegnerische Agenten werden in dieser ersten Version bewusst nicht berücksichtigt.
+Eine wesentliche Schwäche ist die einfache Zustandsrepräsentation mit absoluten Koordinaten. 
+Räumlich ähnliche Situationen werden dadurch als unterschiedliche Zustände behandelt, wodurch nur wenig Generalisierung 
+stattfindet und eine große Q-Tabelle entsteht. 
+In den Tests zeigte der Agent außerdem wiederholt oszillierendes Verhalten, bei dem er nach zunächst erfolgreichem 
+Coin-Sammeln zwischen benachbarten Feldern in einer Schleife hängen blieb. 
+Diese Beobachtungen dienen als Ausgangspunkt für die Entwicklung einer verbesserten Zustandsrepräsentation 
+in der nächsten Agentenversion.
