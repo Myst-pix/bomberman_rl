@@ -1,0 +1,17 @@
+Agent_1_2_QL verbessert die Coin-Navigation des vorherigen Agent_1_1_QL, während weiterhin tabellarisches
+Q-Learning verwendet wird.
+Die wichtigsten Änderungen sind eine BFS-Wegsuche statt der Manhattan-Distanz sowie eine allgemeinere
+Zustandsrepräsentation.
+Statt konkreter Agent- und Coin-Koordinaten enthält der Zustand nun die Richtung des kürzesten Weges zum Coin
+und Informationen über die begehbaren Nachbarfelder. Zusätzlich wurde das Reward Shaping erweitert:
+Bewegungen zum Coin werden belohnt, Bewegungen vom Coin weg sowie unnötiges Warten werden bestraft.
+Dadurch konnte die Zustandsmenge stark reduziert werden. Nach dem Training enthielt die Q-Tabelle lediglich
+140 gelernte Zustands-Aktions-Paare. Der Agent lernt somit nicht mehr hauptsächlich konkrete Positionen auswendig,
+sondern kann gelernte Navigationssituationen an verschiedenen Stellen des Spielfelds wiederverwenden.
+
+Auch das Spielverhalten verbesserte sich deutlich. In einem ersten Test sammelte der Agent in 8 von 10 Runden
+alle Coins in weniger als 150 Schritten. Die bei Agent_1_1_QL häufig beobachteten Oszillationen wurden damit deutlich
+reduziert, traten in zwei Testläufen jedoch weiterhin auf.
+
+Agent_1_2_QL bildet damit den vorläufigen Abschluss von Subgoal 1 und dient als Grundlage für
+die Entwicklung des nächsten Agenten, der das Erfüllen von Subgoal 2 als Ziel hat.
