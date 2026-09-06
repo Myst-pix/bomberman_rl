@@ -1,11 +1,13 @@
 import os
 import pickle
 import random
+from collections import deque
 
 import numpy as np
 
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
+MOVES = ['UP', 'RIGHT', 'DOWN', 'LEFT']
 MAX_DIST = 21.0
 
 
@@ -25,11 +27,12 @@ def setup(self):
     """
     if not os.path.isfile("my-saved-model.pt"):
         self.logger.info("Setting up model from scratch.")
-        self.model = np.zeros(1)
+        self.model = np.zeros(3)
     else:
         self.logger.info("Loading model from saved state.")
         with open("my-saved-model.pt", "rb") as file:
             self.model = pickle.load(file)
+    self.action = 'DOWN'
 
 
 
@@ -42,85 +45,123 @@ def act(self, game_state: dict) -> str:
     :param game_state: The dictionary that describes everything on the board.
     :return: The action to take as a string.
     """
-    random_prob = .3
-    if self.train and random.random() < random_prob:
-        self.logger.debug("Choosing action purely at random.")
-        # 1/6 for any action
-        prob = 1/6
-        return np.random.choice(ACTIONS, p=[0.2,0.2,0.2,0.2,0.2,0])
 
 
-    self.logger.debug("Querying model for action :.")
-    action = policy(game_state,self)
-    self.logger.debug(action)
-    return action
-
-
-def state_to_features(game_state: dict) -> np.array:
-    """
-    *This is not a required function, but an idea to structure your code.*
-
-    Converts the game state to the input of your model, i.e.
-    a feature vector.
-
-    You can find out about the state of the game environment via game_state,
-    which is a dictionary. Consult 'get_state_for_agent' in environment.py to see
-    what it contains.
-
-    :param game_state:  A dictionary describing the current game board.
-    :return: np.array
-    """
-    # This is the dict before the game begins and after it ends
-    if game_state is None:
-        return None
-    x, y = game_state['self'][3]
-    xCoin, yCoin = nearest_coin(game_state)
-    dist_coin = distance(np.array([x,y]),np.array([xCoin,yCoin]))
-    # relative offset instead of absolute coords
-    return np.array([dist_coin,1])
+    if self.train:
+        return self.action
+    else:
+        return policy(game_state,self)
 
 def action_state_to_features(game_state:dict, action) -> np.array:
-    # This is the dict before the game begins and after it ends
     if game_state is None:
         return None
-    (x,y) = game_state['self'][3]
-    (xCoin,yCoin) = nearest_coin(game_state)
+
+
+    field = game_state["field"]
+    _, _, _, (x, y) = game_state["self"]
+    features = []
+    free = False
     match action:
         case 'UP':
-            (x,y) = (x,y-1)
+            if is_free(field,x,y-1):
+                free = True
         case 'DOWN':
-            (x,y) = (x,y+1)
+            if is_free(field,x,y+1):
+                free = True
         case 'LEFT':
-            (x,y) = (x-1,y)
+            if is_free(field,x-1,y):
+                free = True
         case 'RIGHT':
-            (x,y) = (x+1,y)
+            if is_free(field,x+1,y):
+                free = True
         case 'WAIT':
             pass
         case 'BOMB':
             pass
-    dist_coin = distance(np.array((x,y)),np.array(xCoin,yCoin))
-    dist_coin = min(dist_coin, MAX_DIST)/ MAX_DIST
-    return np.array([dist_coin])
-
-def distance(p, q):
-    return np.linalg.norm(p - q)
-
-
-def nearest_coin(game_state: dict):
-    if len(game_state['coins']) == 0:
-        coins = np.array([[0,0]])
+    features.append(free)
+    on_coin = (x, y) in set(game_state["coins"])
+    if on_coin:
+        features.append(1)
     else:
-        coins = game_state['coins']
-    agent = np.array(game_state['self'][3])
-    dist_squared = np.sum((coins - agent) ** 2, axis=1)
-    closest_idx = np.argmin(dist_squared)
-    closest_coin = coins[closest_idx]
-    return closest_coin
+        coin_direction = direction_to_nearest_coin(game_state, x, y)
+        if ACTIONS[coin_direction] == action:
+            features.append(1)
+        else:
+            features.append(0)
+    features.append(1)
+    return np.array(np.array(features))
+def is_free(field, x, y):
+    if x < 0 or y < 0:
+        return False
+
+    if x >= field.shape[0] or y >= field.shape[1]:
+        return False
+
+    return field[x, y] == 0
+
+def direction_to_nearest_coin(game_state,x,y):
+    #Bestimmt mittels Breitensuche den ersten Schritt auf dem kürzesten Weg zum nächsten Coin
+
+    field = game_state["field"]
+    start = (x,y)
+    coins = set(game_state["coins"])
+
+    if not coins:
+        return 4
+
+    directions = [
+        ((0, -1), 0),
+        ((1, 0), 1),
+        ((0, 1), 2),
+        ((-1, 0), 3)
+    ]
+
+    queue = deque()
+    visited = {start}
+
+    for (dx, dy), direction_id in directions:
+        nx = start[0] + dx
+        ny = start[1] + dy
+
+        if is_free(field, nx, ny):
+            queue.append(((nx, ny), direction_id))
+            visited.add((nx, ny))
+
+    while queue:
+        position, first_direction = queue.popleft()
+        if position in coins:
+            return first_direction
+        x, y = position
+        for (dx, dy), _ in directions:
+            nx = x + dx
+            ny = y + dy
+            next_position = (nx, ny)
+
+            if (
+                    next_position not in visited
+                    and is_free(field, nx, ny)
+            ):
+                visited.add(next_position)
+                queue.append((next_position, first_direction))
+    return 4
 
 def action_value_aprox_Function(action, game_state:dict, self):
     features = action_state_to_features(game_state,action)
     return features.T @ self.model
 
 def policy(game_state:dict,self):
-    action_values = [action_value_aprox_Function(a, game_state,self) for a in ACTIONS]
-    return ACTIONS[np.argmax(action_values)]
+    random_prob = .1
+    if self.train and random.random() < random_prob:
+        self.logger.debug("Choosing action purely at random.")
+        # 1/6 for any action
+        prob = 1/6
+        return np.random.choice(ACTIONS, p=[0.2,0.2,0.2,0.2,0.2,0])
+    action = 'DOWN'
+    actionvalue = 0
+    for a in ACTIONS:
+        valtemp = action_value_aprox_Function(a,game_state,self)
+        if valtemp > actionvalue:
+            action = a
+            actionvalue = valtemp
+    self.logger.debug(f'Querying model for action :. {action}')
+    return action
