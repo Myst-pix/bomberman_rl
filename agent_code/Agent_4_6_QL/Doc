@@ -1,3 +1,6 @@
+Agent_4_6_QL – Änderungen gegenüber Agent_3_2_QL
+
+Agent_4_6_QL baut auf Agent_3_2_QL auf und wurde für Subgoal 4 weiterentwickelt. Der Schwerpunkt liegt auf robusterem Verhalten in echten Kampfsituationen gegen stärkere Gegner.
 
 * Verbesserte Gegnerverfolgung: Ein einmal gewähltes Angriffsziel wird für einige Schritte beibehalten,
                                 damit der Agent nicht ständig auf Bewegungen des Gegners reagiert und
