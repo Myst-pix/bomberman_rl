@@ -161,7 +161,7 @@ def reward_from_events(self_action: str, old_state, events: list) -> float:
         reward -= 50
 
     if e.GOT_KILLED in events:
-        reward -= 30
+        reward -= 50
 
     if e.KILLED_OPPONENT in events:
         reward += 40
